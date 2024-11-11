@@ -17,10 +17,10 @@ import java.util.Map;
 public class SerdeProducer {
 
   @Inject
-  /* default */ SchemaRegistryClient registry;
+  SchemaRegistryClient registry;
 
   @ConfigProperty(name = "quarkus.kafka-streams.schema-registry-url")
-  /* default */ String schemaRegistryUrl;
+  String schemaRegistryUrl;
 
   @Produces
   @DefaultBean
