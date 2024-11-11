@@ -1,0 +1,15 @@
+{
+  "namespace": "org.hoohoot.homelab.manager.sensors",
+  "type": "record",
+  "name": "TemperatureSensorInfo",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string"
+    },
+    {
+      "name": "id",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "namespace": "org.hoohoot.homelab.manager.sensors",
+  "type": "record",
+  "name": "TemperatureMeasurement",
+  "fields": [
+    {
+      "name": "location",
+      "type": "string"
+    },
+    {
+      "name": "temperature",
+      "type": "double"
+    },
+    {
+      "name": "humidity",
+      "type": "double"
+    }
+  ]
+}
