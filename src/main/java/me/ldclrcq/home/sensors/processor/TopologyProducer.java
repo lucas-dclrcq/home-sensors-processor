@@ -13,6 +13,9 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.ProcessorSupplier;
+import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier;
 import org.apache.kafka.streams.state.Stores;
 import org.hoohoot.homelab.manager.sensors.PowerMeasurement;
@@ -76,7 +79,8 @@ public class TopologyProducer {
                     return matcher.group(1);
                 }, Named.as("extract-sensor-location-to-key"))
                 .mapValues(value -> this.deserialize(value.payload(), RawTempMeasurement.class), Named.as("deserialize-temp-payload"))
-                .mapValues(value -> new TemperatureMeasurement(value.device.friendlyName, value.temperature, value.humidity), Named.as("map-rawmeasurement-to-tempmeasurement"))
+                .process((ProcessorSupplier<String, RawTempMeasurement, String, TemperatureMeasurement>) () -> record
+                        -> new TemperatureMeasurement(record.key(), record.value().temperature, record.value().humidity, record.timestamp()), Named.as("map-rawmeasurement-to-tempmeasurement"))
                 .to(SENSORS_TEMPS_TOPIC, Produced.with(Serdes.String(), tempMeasurementSerde)));
 
         Branched<Zigbee2MQTTKey, RawPayload> powerBranch = Branched.withConsumer(ks -> ks

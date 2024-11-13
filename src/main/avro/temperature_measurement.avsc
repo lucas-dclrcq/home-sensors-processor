@@ -14,6 +14,11 @@
     {
       "name": "humidity",
       "type": "double"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "local-timestamp-millis"
     }
   ]
 }
