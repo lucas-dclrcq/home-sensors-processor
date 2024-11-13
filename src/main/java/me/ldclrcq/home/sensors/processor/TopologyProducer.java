@@ -79,8 +79,7 @@ public class TopologyProducer {
                     return matcher.group(1);
                 }, Named.as("extract-sensor-location-to-key"))
                 .mapValues(value -> this.deserialize(value.payload(), RawTempMeasurement.class), Named.as("deserialize-temp-payload"))
-                .process((ProcessorSupplier<String, RawTempMeasurement, String, TemperatureMeasurement>) () -> record
-                        -> new TemperatureMeasurement(record.key(), record.value().temperature, record.value().humidity, record.timestamp()), Named.as("map-rawmeasurement-to-tempmeasurement"))
+                .process(RawTempMeasurementMapper::new, Named.as("map-rawmeasurement-to-tempmeasurement"))
                 .to(SENSORS_TEMPS_TOPIC, Produced.with(Serdes.String(), tempMeasurementSerde)));
 
         Branched<Zigbee2MQTTKey, RawPayload> powerBranch = Branched.withConsumer(ks -> ks
