@@ -6,6 +6,7 @@ import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import me.ldclrcq.home.sensors.processor.raw_measurements.RawPayload;
+import me.ldclrcq.home.sensors.processor.raw_measurements.linky.RawLinkyMeasurement;
 import me.ldclrcq.home.sensors.processor.raw_measurements.temperature.RawTempMeasurement;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -26,6 +27,7 @@ public class TopologyProducer {
 
     private final static String ZIGBEE2MQTT_TOPIC = "zigbee2mqtt";
     private final static String SENSORS_TEMPS_TOPIC = "sensors-temperatures";
+    private final static String SENSORS_LINKY_TOPIC = "sensors-linky";
 
     private final ObjectMapper objectMapper;
 
@@ -39,6 +41,7 @@ public class TopologyProducer {
 
         ObjectMapperSerde<Zigbee2MQTTKey> zigbee2MQTTKeySerde = new ObjectMapperSerde<>(Zigbee2MQTTKey.class);
         ObjectMapperSerde<RawTempMeasurement> rawTempMeasurementSerde = new ObjectMapperSerde<>(RawTempMeasurement.class);
+        ObjectMapperSerde<RawLinkyMeasurement> rawLinkyMeasurement = new ObjectMapperSerde<>(RawLinkyMeasurement.class);
 
         KStream<Zigbee2MQTTKey, RawPayload> zigbee2mqtt = builder
                 .stream(ZIGBEE2MQTT_TOPIC, Consumed.with(zigbee2MQTTKeySerde, Serdes.String()))
@@ -57,9 +60,15 @@ public class TopologyProducer {
                 .mapValues(value -> this.deserialize(value.payload(), RawTempMeasurement.class), Named.as("deserialize-temp-payload"))
                 .to(SENSORS_TEMPS_TOPIC, Produced.with(Serdes.String(), rawTempMeasurementSerde)));
 
+        Branched<Zigbee2MQTTKey, RawPayload> powerBranch = Branched.withConsumer(ks -> ks.selectKey((key, value) -> "linky", Named.as("extract-sensor-location-to-key"))
+                .mapValues(value -> this.deserialize(value.payload(), RawLinkyMeasurement.class), Named.as("deserialize-linky-payload"))
+                .processValues(LinkyDedupValueTransformer::new, Named.as("deduplicate-linky-measurements"))
+                .to(SENSORS_LINKY_TOPIC, Produced.with(Serdes.String(), rawLinkyMeasurement)));
+
         zigbee2mqtt
                 .split()
                 .branch((key, value) -> key.payload.startsWith("zigbee2mqtt/temp"), temperatureBranch)
+                .branch((key, value) -> key.payload.startsWith("zigbee2mqtt/linky"), powerBranch)
                 .noDefaultBranch();
 
 
