@@ -27,14 +27,13 @@ public class LinkyConsumer {
     public Uni<Void> consume(ConsumerRecord<String, RawLinkyMeasurement> record) {
         return Uni.createFrom().item(record)
                 .map(tempRecord -> {
-                    String room = tempRecord.key();
                     RawLinkyMeasurement value = tempRecord.value();
 
                     long timestamp = tempRecord.timestamp();
                     Instant instant = Instant.ofEpochMilli(timestamp);
                     OffsetDateTime observedAt = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
 
-                    return Tuple.from(List.of(observedAt, room, value.currentSummDelivered(), value.apparentPower(), value.availablePower(), value.currentTarif()));
+                    return Tuple.from(List.of(observedAt, value.currentSummDelivered(), value.apparentPower(), value.availablePower(), value.currentTarif()));
                 })
                 .flatMap(parameters -> pool.withTransaction(sqlConnection -> sqlConnection
                         .preparedQuery("""
