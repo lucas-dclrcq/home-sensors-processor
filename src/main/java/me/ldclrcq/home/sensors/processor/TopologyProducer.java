@@ -60,7 +60,7 @@ public class TopologyProducer {
                 .mapValues(value -> this.deserialize(value.payload(), RawTempMeasurement.class), Named.as("deserialize-temp-payload"))
                 .to(SENSORS_TEMPS_TOPIC, Produced.with(Serdes.String(), rawTempMeasurementSerde)));
 
-        Branched<Zigbee2MQTTKey, RawPayload> powerBranch = Branched.withConsumer(ks -> ks.selectKey((key, value) -> "linky", Named.as("extract-sensor-location-to-key"))
+        Branched<Zigbee2MQTTKey, RawPayload> powerBranch = Branched.withConsumer(ks -> ks.selectKey((key, value) -> "linky", Named.as("set-linky-key"))
                 .mapValues(value -> this.deserialize(value.payload(), RawLinkyMeasurement.class), Named.as("deserialize-linky-payload"))
                 .processValues(LinkyDedupValueTransformer::new, Named.as("deduplicate-linky-measurements"))
                 .to(SENSORS_LINKY_TOPIC, Produced.with(Serdes.String(), rawLinkyMeasurement)));
