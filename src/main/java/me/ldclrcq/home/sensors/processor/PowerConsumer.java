@@ -5,7 +5,6 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.sqlclient.Pool;
 import io.vertx.mutiny.sqlclient.Tuple;
 import jakarta.enterprise.context.ApplicationScoped;
-import me.ldclrcq.home.sensors.processor.raw_measurements.linky.RawLinkyMeasurement;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
@@ -15,30 +14,30 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 @ApplicationScoped
-public class LinkyConsumer {
+public class PowerConsumer {
     private final Pool pool;
 
-    public LinkyConsumer(Pool pool) {
+    public PowerConsumer(Pool pool) {
         this.pool = pool;
     }
 
-    @Incoming("linky")
+    @Incoming("power")
     @NonBlocking
-    public Uni<Void> consume(ConsumerRecord<String, RawLinkyMeasurement> record) {
+    public Uni<Void> consume(ConsumerRecord<String, PowerMeasurement> record) {
         return Uni.createFrom().item(record)
                 .map(tempRecord -> {
-                    RawLinkyMeasurement value = tempRecord.value();
+                    PowerMeasurement value = tempRecord.value();
 
                     long timestamp = tempRecord.timestamp();
                     Instant instant = Instant.ofEpochMilli(timestamp);
                     OffsetDateTime observedAt = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
 
-                    return Tuple.from(List.of(observedAt, value.currentSummDelivered(), value.apparentPower(), value.availablePower(), value.currentTarif()));
+                    return Tuple.from(List.of(observedAt, value.currentSummDeliveredWh(), value.powerConsumedWh(), value.apparentPower()));
                 })
                 .flatMap(parameters -> pool.withTransaction(sqlConnection -> sqlConnection
                         .preparedQuery("""
-                                INSERT INTO linky (observed_at, current_summ_delivered, apparent_power, available_power, current_tarif)
-                                VALUES ($1, $2, $3, $4, $5)
+                                INSERT INTO power (observed_at, current_summ_delivered, power_consumed, apparent_power)
+                                VALUES ($1, $2, $3, $4)
                                 """).execute(parameters)))
                 .replaceWithVoid();
     }
