@@ -34,13 +34,23 @@ public class TemperatureConsumer {
                     Instant instant = Instant.ofEpochMilli(timestamp);
                     OffsetDateTime observedAt = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
 
+                    if (value == null) {
+                        return null;
+                    }
+
                     return Tuple.from(List.of(observedAt, room, value.battery, value.humidity, value.temperature, value.linkquality, value.voltage));
                 })
-                .flatMap(parameters -> pool.withTransaction(sqlConnection -> sqlConnection
-                        .preparedQuery("""
-                                INSERT INTO temperatures (observed_at, room, battery, humidity, temperature, link_quality, voltage)
-                                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                                """).execute(parameters)))
+                .flatMap(parameters -> pool.withTransaction(sqlConnection -> {
+                    if (parameters == null) {
+                        return Uni.createFrom().nullItem();
+                    }
+
+                    return sqlConnection
+                            .preparedQuery("""
+                                    INSERT INTO temperatures (observed_at, room, battery, humidity, temperature, link_quality, voltage)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                    """).execute(parameters);
+                }))
                 .replaceWithVoid();
     }
 }

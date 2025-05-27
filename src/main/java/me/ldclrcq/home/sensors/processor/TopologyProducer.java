@@ -70,7 +70,13 @@ public class TopologyProducer {
 
                     return matcher.group(1);
                 }, Named.as("extract-sensor-location-to-key"))
-                .mapValues(value -> this.deserialize(value.payload(), RawTempMeasurement.class), Named.as("deserialize-temp-payload"))
+                .mapValues(value -> {
+                    if (value == null || value.payload() == null || value.payload().isEmpty()) {
+                        return null;
+                    }
+
+                    return this.deserialize(value.payload(), RawTempMeasurement.class);
+                }, Named.as("deserialize-temp-payload"))
                 .to(SENSORS_TEMPS_TOPIC, Produced.with(Serdes.String(), rawTempMeasurementSerde)));
 
 
